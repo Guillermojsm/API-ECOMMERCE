@@ -3,7 +3,9 @@ const LocalStrategy = require('passport-local').Strategy;
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 const bcrypt = require('bcrypt');
-const User = require('../models/user.model');
+const UserRepository = require('../repositories/user.repository');
+
+const userRepository = new UserRepository();
 
 const initializePassport = () => {
     // Estrategia Local para Login
@@ -14,14 +16,14 @@ const initializePassport = () => {
         },
         async (email, password, done) => {
             try {
-                const user = await User.findOne({ email });
-                
+                const user = await userRepository.getUserByEmail(email);
+
                 if (!user) {
                     return done(null, false, { message: 'Usuario no encontrado' });
                 }
 
                 const isValidPassword = bcrypt.compareSync(password, user.password);
-                
+
                 if (!isValidPassword) {
                     return done(null, false, { message: 'Contraseña incorrecta' });
                 }
@@ -41,8 +43,8 @@ const initializePassport = () => {
 
     passport.use('jwt', new JwtStrategy(jwtOptions, async (jwt_payload, done) => {
         try {
-            const user = await User.findById(jwt_payload.id).populate('cart');
-            
+            const user = await userRepository.getUserById(jwt_payload.id);
+
             if (!user) {
                 return done(null, false, { message: 'Usuario no encontrado' });
             }

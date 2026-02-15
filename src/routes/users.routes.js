@@ -14,15 +14,15 @@ const router = Router();
 router.post('/', createUser);
 
 // GET /api/users - Listar todos los usuarios (protegido)
-router.get('/', passportCall('jwt'), getUsers);
+router.get('/', passportCall('current'), getUsers);
 
 // GET /api/users/:id - Obtener usuario por ID (protegido)
-router.get('/:id', passportCall('jwt'), getUserById);
+router.get('/:id', passportCall('current'), getUserById);
 
 // PUT /api/users/:id - Actualizar usuario (protegido)
-router.put('/:id', passportCall('jwt'), updateUser);
+router.put('/:id', passportCall('current'), updateUser);
 
 // DELETE /api/users/:id - Eliminar usuario (protegido)
-router.delete('/:id', passportCall('jwt'), deleteUser);
+router.delete('/:id', passportCall('current'), deleteUser);
 
 module.exports = router;

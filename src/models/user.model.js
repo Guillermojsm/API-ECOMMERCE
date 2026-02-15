@@ -24,6 +24,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'La contraseña es requerida']
     },
+    resetToken: {
+        type: String,
+        default: null
+    },
+    resetTokenExpires: {
+        type: Date,
+        default: null
+    },
     cart: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Cart'

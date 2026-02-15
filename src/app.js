@@ -11,6 +11,8 @@ const initializePassport = require('./config/passport.config');
 // Importar rutas
 const usersRoutes = require('./routes/users.routes');
 const sessionsRoutes = require('./routes/sessions.routes');
+const productsRoutes = require('./routes/products.routes');
+const cartsRoutes = require('./routes/carts.routes');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -26,9 +28,11 @@ app.use(passport.initialize());
 // Rutas
 app.use('/api/users', usersRoutes);
 app.use('/api/sessions', sessionsRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/carts', cartsRoutes);
 
 // Ruta de health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
     res.status(200).json({
         status: 'success',
         message: 'API funcionando correctamente',
@@ -37,7 +41,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Manejo de rutas no encontradas
-app.use('*', (req, res) => {
+app.use('*', (_req, res) => {
     res.status(404).json({
         status: 'error',
         message: 'Ruta no encontrada'
@@ -45,7 +49,7 @@ app.use('*', (req, res) => {
 });
 
 // Manejo global de errores
-app.use((error, req, res, next) => {
+app.use((error, _req, res, _next) => {
     console.error('Error:', error);
     res.status(500).json({
         status: 'error',

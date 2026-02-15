@@ -1,14 +1,16 @@
 const bcrypt = require('bcrypt');
-const User = require('../models/user.model');
-const Cart = require('../models/cart.model');
+const UserRepository = require('../repositories/user.repository');
+const CartRepository = require('../repositories/cart.repository');
+const UserDto = require('../dtos/user.dto');
 
-// Crear usuario (registro)
+const userRepository = new UserRepository();
+const cartRepository = new CartRepository();
+
 const createUser = async (req, res) => {
     try {
         const { first_name, last_name, email, age, password, role } = req.body;
 
-        // Verificar si el usuario ya existe
-        const existingUser = await User.findOne({ email });
+        const existingUser = await userRepository.getUserByEmail(email);
         if (existingUser) {
             return res.status(400).json({
                 status: 'error',
@@ -16,14 +18,11 @@ const createUser = async (req, res) => {
             });
         }
 
-        // Crear carrito para el usuario
-        const newCart = await Cart.create({ products: [] });
+        const newCart = await cartRepository.createCart({ products: [] });
 
-        // Hashear password con bcrypt.hashSync
         const hashedPassword = bcrypt.hashSync(password, 10);
 
-        // Crear usuario
-        const newUser = await User.create({
+        const newUser = await userRepository.createUser({
             first_name,
             last_name,
             email,
@@ -33,16 +32,7 @@ const createUser = async (req, res) => {
             role: role || 'user'
         });
 
-        // Respuesta sin password
-        const userResponse = {
-            id: newUser._id,
-            first_name: newUser.first_name,
-            last_name: newUser.last_name,
-            email: newUser.email,
-            age: newUser.age,
-            cart: newUser.cart,
-            role: newUser.role
-        };
+        const userResponse = new UserDto(newUser);
 
         res.status(201).json({
             status: 'success',
@@ -58,14 +48,14 @@ const createUser = async (req, res) => {
     }
 };
 
-// Obtener todos los usuarios
-const getUsers = async (req, res) => {
+const getUsers = async (_req, res) => {
     try {
-        const users = await User.find().select('-password').populate('cart');
-        
+        const users = await userRepository.getUsers();
+        const usersResponse = users.map(user => new UserDto(user));
+
         res.status(200).json({
             status: 'success',
-            payload: users
+            payload: usersResponse
         });
     } catch (error) {
         res.status(500).json({
@@ -76,11 +66,10 @@ const getUsers = async (req, res) => {
     }
 };
 
-// Obtener usuario por ID
 const getUserById = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findById(id).select('-password').populate('cart');
+        const user = await userRepository.getUserById(id);
 
         if (!user) {
             return res.status(404).json({
@@ -91,7 +80,7 @@ const getUserById = async (req, res) => {
 
         res.status(200).json({
             status: 'success',
-            payload: user
+            payload: new UserDto(user)
         });
     } catch (error) {
         res.status(500).json({
@@ -102,22 +91,16 @@ const getUserById = async (req, res) => {
     }
 };
 
-// Actualizar usuario
 const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = { ...req.body };
 
-        // Si se actualiza password, hashearlo
         if (updateData.password) {
             updateData.password = bcrypt.hashSync(updateData.password, 10);
         }
 
-        const updatedUser = await User.findByIdAndUpdate(
-            id,
-            updateData,
-            { new: true, runValidators: true }
-        ).select('-password');
+        const updatedUser = await userRepository.updateUser(id, updateData);
 
         if (!updatedUser) {
             return res.status(404).json({
@@ -129,7 +112,7 @@ const updateUser = async (req, res) => {
         res.status(200).json({
             status: 'success',
             message: 'Usuario actualizado exitosamente',
-            payload: updatedUser
+            payload: new UserDto(updatedUser)
         });
     } catch (error) {
         res.status(500).json({
@@ -140,11 +123,10 @@ const updateUser = async (req, res) => {
     }
 };
 
-// Eliminar usuario
 const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findById(id);
+        const user = await userRepository.getUserById(id);
 
         if (!user) {
             return res.status(404).json({
@@ -153,12 +135,11 @@ const deleteUser = async (req, res) => {
             });
         }
 
-        // Eliminar carrito asociado
         if (user.cart) {
-            await Cart.findByIdAndDelete(user.cart);
+            await cartRepository.deleteCart(user.cart);
         }
 
-        await User.findByIdAndDelete(id);
+        await userRepository.deleteUser(id);
 
         res.status(200).json({
             status: 'success',
